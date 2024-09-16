@@ -24,15 +24,28 @@
     </div>
     <script>
         const socket = io();
+        
+        const messageInput = document.getElementById('message');
+        const sendButton = document.getElementById('send');
+        const messages = document.getElementById('messages');
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message) {
+                socket.send(message);
+                messageInput.value = '';
+            }
+        }
 
-        document.getElementById('send').onclick = function() {
-            const message = document.getElementById('message').value;
-            socket.send(message);
-            document.getElementById('message').value = '';
-        };
+        sendButton.onclick = sendMessage;
+
+        messageInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();  // Prevent default form submission behavior
+                sendMessage();
+            }
+        });
 
         socket.on('message', function(data) {
-            const messages = document.getElementById('messages');
             messages.innerHTML += '<p><strong>' + data.username + ':</strong> ' + data.message + '</p>';
         });
     </script>
