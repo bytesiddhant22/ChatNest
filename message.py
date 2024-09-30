@@ -3,6 +3,29 @@ from models import db, Message, User
 from flask_login import current_user
 from datetime import datetime
 import pytz
+from datetime import datetime , timedelta , timezone
+
+def convertime(dbtime):
+    if dbtime.tzinfo is None:
+        dbtime = dbtime.replace(tzinfo=timezone.utc)  
+    ist = pytz.timezone('Asia/Kolkata')
+    return dbtime.astimezone(ist)
+
+
+def format_time_for_chat(timestamp):
+    now = datetime.now(pytz.timezone('Asia/Kolkata'))  
+    diff = now - timestamp
+
+    if diff < timedelta(minutes=1):
+        return "Just now"
+    elif diff < timedelta(hours=1):
+        minutes = diff.seconds // 60
+        return f"{minutes} minutes ago"
+    elif diff < timedelta(hours=24) and timestamp.date() == now.date():
+        return timestamp.strftime('%H:%M') 
+    else:
+        return timestamp.strftime('%b %d, %Y, %I:%M %p')  
+
 
 def handle_message(data):
     msg = data['message']
@@ -13,12 +36,14 @@ def handle_message(data):
     db.session.add(new_message)
     db.session.commit()
 
-    utc_timestamp = new_message.timestamp.isoformat()
+    ist_timestamp = convertime(new_message.timestamp)
+
+    formatted_timestamp = format_time_for_chat(ist_timestamp)
 
     emit('message', {
-        'message': msg, 
-        'username': user.username, 
-        'timestamp': utc_timestamp
+        'message': msg,
+        'username': user.username,
+        'timestamp': formatted_timestamp  
     }, room=room_id)
 
 def handle_join(data):

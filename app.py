@@ -7,7 +7,7 @@ from message import handle_message , handle_join
 from dotenv import load_dotenv
 import os
 import pytz
-from datetime import datetime
+from datetime import timezone , datetime , timedelta
 
 load_dotenv()
 
@@ -31,10 +31,24 @@ def index():
     return render_template('index.html', chat_rooms=chat_rooms)
 
 def convertime(dbtime):
+    if dbtime.tzinfo is None:
+        dbtime = dbtime.replace(tzinfo=timezone.utc) 
     ist = pytz.timezone('Asia/Kolkata')
-    return dbtime.astimezone(ist).strftime('%H:%M')
+    return dbtime.astimezone(ist)
 
+def formatTimeForChat(timestamp):
+    now = datetime.now(pytz.timezone('Asia/Kolkata'))
+    diff = now - timestamp
 
+    if diff < timedelta(minutes=1):
+        return "Just Now"
+    elif diff < timedelta(hours=1):
+        minutes = diff.seconds // 60
+        return f"{minutes} minutes ago"
+    elif diff < timedelta(hours=24) and timestamp.date() == now.date():
+        return timestamp.strftime('%H:%M')  
+    else:
+        return timestamp.strftime('%b %d, %Y, %I:%M %p')  
 
 @app.route('/chat/<string:roomname>')
 @login_required
@@ -42,7 +56,8 @@ def chat(roomname):
     room = ChatRoom.query.filter_by(name=roomname).first_or_404()
     messages = Message.query.filter_by(chat_room_id=room.id).all()
     for m in messages:
-        m.ist_timestamp = convertime(m.timestamp)
+        istTime = convertime(m.timestamp)
+        m.ist_timestamp = formatTimeForChat(istTime)
     return render_template('chat.html', room=room, messages=messages)
 
 

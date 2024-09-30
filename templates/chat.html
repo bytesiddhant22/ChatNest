@@ -49,30 +49,18 @@
     
         socket.on('message', function(data) {
             const messageElement = document.createElement('p');
-            
-            const timestamp = formatTimestamp(data.timestamp);
-            
+                        
             if (data.username === "System") {
-                messageElement.innerHTML = `<strong>System : </strong><em>${data.message}</em> <small class="text-muted">(${data.timestamp})</small>`;
+                messageElement.innerHTML = `<strong>System : </strong><em>${data.message}</em> <small class="text-muted">${data.timestamp}</small>`;
             } else {
                 messageElement.innerHTML = `<strong>${data.username}:</strong> ${data.message} 
-                                            <small class="text-muted">(${timestamp})</small>`;
+                                            <small class="text-muted">${data.timestamp}</small>`;
             }
             messagesDiv.appendChild(messageElement);
     
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         });
     
-        function formatTimestamp(utcTimestamp) {
-    const date = new Date(utcTimestamp);
-    
-    const istOffset = 5 * 60 * 60 * 1000 + 30 * 60 * 1000; 
-    const istTime = new Date(date.getTime() + istOffset);
-
-    return `${istTime.getHours()}:${istTime.getMinutes() < 10 ? '0' : ''}${istTime.getMinutes()}`;
-}
-    
-        // Emit join event to the server
         socket.emit('join', { room_id: roomId });
     </script>
     
