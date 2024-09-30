@@ -1,11 +1,13 @@
 from flask import Flask , render_template , redirect , url_for , request
 from flask_login import LoginManager , login_user , login_required , logout_user , current_user 
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO , join_room , emit
 from werkzeug.security import generate_password_hash , check_password_hash
-from models import db , User , Message
-from message import handle_message
+from models import db , User , Message , ChatRoom
+from message import handle_message , handle_join
 from dotenv import load_dotenv
 import os
+import pytz
+from datetime import datetime
 
 load_dotenv()
 
@@ -25,8 +27,24 @@ def load_user(user_id):
 @app.route('/')
 @login_required
 def index():
-    messages = Message.query.all()
-    return render_template('index.html' , messages=messages)
+    chat_rooms = ChatRoom.query.all()
+    return render_template('index.html', chat_rooms=chat_rooms)
+
+def convertime(dbtime):
+    ist = pytz.timezone('Asia/Kolkata')
+    return dbtime.astimezone(ist).strftime('%H:%M')
+
+
+
+@app.route('/chat/<string:roomname>')
+@login_required
+def chat(roomname):
+    room = ChatRoom.query.filter_by(name=roomname).first_or_404()
+    messages = Message.query.filter_by(chat_room_id=room.id).all()
+    for m in messages:
+        m.ist_timestamp = convertime(m.timestamp)
+    return render_template('chat.html', room=room, messages=messages)
+
 
 @app.route('/login' , methods=['GET','POST'])
 def login():
@@ -40,6 +58,19 @@ def login():
     
     return render_template('login.html')
 
+def create_default_chat_rooms():
+    default_rooms = ['General', 'Technology', 'Anime', 'Movies' , 'Gaming']
+    for room_name in default_rooms:
+        if not ChatRoom.query.filter_by(name=room_name).first():
+            new_room = ChatRoom(name=room_name)
+            db.session.add(new_room)
+    db.session.commit()
+
+@socketio.on('join')
+def on_join(data):
+    handle_join(data)
+
+
 @app.route('/register' , methods =['GET','POST'])
 def register():
     if request.method == 'POST':
@@ -52,16 +83,23 @@ def register():
     
     return render_template('register.html')
 
+
+@socketio.on('message')
+def handle_message_wrapper(data):
+    handle_message(data)
+
+
+
 @app.route('/logout')
 def logout():
     logout_user()
     return redirect(url_for('login'))
 
-@socketio.on('message')
-def on_message(msg):
-    handle_message(msg , current_user.username)
+
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        create_default_chat_rooms()
+    
     socketio.run(app , debug=True)

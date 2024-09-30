@@ -8,46 +8,14 @@
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO" crossorigin="anonymous"></script>
 </head>
 <body>
-    <div class="container">
-        <h1 class="mt-5">ChatNest 💬 Room</h1>
-        <div class="card mt-3">
-            <div class="card-body">
-                <div id="messages" class="mb-3">
-                    {% for message in messages %}
-                        <p><strong>{{ message.user.username }}:</strong> {{ message.content }}</p>
-                    {% endfor %}
-                </div>
-                <input id="message" class="form-control" placeholder="Type a message">
-                <button id="send" class="btn btn-primary mt-2">Send</button>
-            </div>
-        </div>
-    </div>
-    <script>
-        const socket = io();
-        
-        const messageInput = document.getElementById('message');
-        const sendButton = document.getElementById('send');
-        const messages = document.getElementById('messages');
-        function sendMessage() {
-            const message = messageInput.value.trim();
-            if (message) {
-                socket.send(message);
-                messageInput.value = '';
-            }
-        }
-
-        sendButton.onclick = sendMessage;
-
-        messageInput.addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                event.preventDefault();  // Prevent default form submission behavior
-                sendMessage();
-            }
-        });
-
-        socket.on('message', function(data) {
-            messages.innerHTML += '<p><strong>' + data.username + ':</strong> ' + data.message + '</p>';
-        });
-    </script>
+    <div class="container mt-5"></div>
+        <h1>Chat Rooms</h1>
+        <ul class="list-group mt-3">
+            {% for room in chat_rooms %}
+                <li class="list-group-item">
+                    <a href="{{ url_for('chat', roomname=room.name) }}">{{ room.name }}</a>
+                </li>
+            {% endfor %}
+        </ul>
 </body>
 </html>
